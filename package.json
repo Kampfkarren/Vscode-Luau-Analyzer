@@ -5,7 +5,7 @@
 	"description": "Vscode port of zeux's SublimeLinter-Luau",
 	"main": "./out/extension.js",
 	"engines": {
-		"vscode": "^1.64.0"
+		"vscode": "^1.65.0"
 	},
 	"activationEvents": [
 		"onlanguage:luau",
@@ -27,6 +27,14 @@
 		"luau",
 		"lua"
 	],
+	"categories": [
+		"Linters"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/HawDevelopment/VscodeLinter-Luau"
+	},
 	"author": "HawDevelopment",
+	"publisher": "HawDevelopment",
 	"license": "MIT"
 }

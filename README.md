@@ -4,6 +4,8 @@ Vscode port of [zuex](https://github.com/zeux)'s [SumblimeLinter-Luau](https://g
 
 NOTE: You need to have v512 luau-analyzer or greater in your environment path! (Found [here](https://github.com/Roblox/luau/releases/))
 
+[Vscode Marketplace Link](https://marketplace.visualstudio.com/items?itemName=HawDevelopment.vscode-luau-analyzer)
+
 ## Errors
 
 If your experiencing linter errors when requiring a module, you should try using `::` (typecast).
