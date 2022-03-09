@@ -16,7 +16,7 @@ If your using this extension for roblox development, you should consider creatin
 
 Heres a small template:
 
-```json
+```json5
 {
 	"languageMode": "strict", // nocheck, nonstrict, strict
 	"lint": {"*": true, "LocalUnused": false},
