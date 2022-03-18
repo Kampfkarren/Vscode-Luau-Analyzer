@@ -19,6 +19,11 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	context.subscriptions.push(
+		vscode.workspace.onDidOpenTextDocument((document) => {
+			updateDiagnostics(document, collection, getWorkspacePath());
+		})
+	);
+	context.subscriptions.push(
 		vscode.workspace.onDidChangeTextDocument((event) => {
 			updateDiagnostics(event.document, collection, getWorkspacePath());
 		})
