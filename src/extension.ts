@@ -1,4 +1,9 @@
 import * as vscode from "vscode";
+import { spawnSync } from "child_process";
+import fetch from "node-fetch";
+import { TextEncoder } from "util";
+
+const GLOBAL_TYPES_URL = "https://raw.githubusercontent.com/JohnnyMorganz/luau-analyze-rojo/master/globalTypes.d.lua";
 
 let collection: vscode.DiagnosticCollection;
 
@@ -18,6 +23,34 @@ export function activate(context: vscode.ExtensionContext) {
 		updateDiagnostics(vscode.window.activeTextEditor.document, collection, getWorkspacePath());
 	}
 
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "vscode-luau-analyzer.installTypes",
+        () => {
+          fetch(GLOBAL_TYPES_URL)
+            .then((res) => res.text())
+            .then((types) => {
+              const workspaceFolders = vscode.workspace.workspaceFolders;
+              if (!workspaceFolders) {
+                throw new Error("No workspace folder open");
+              }
+
+              return vscode.workspace.fs.writeFile(
+                vscode.Uri.joinPath(
+                  workspaceFolders[0].uri,
+                  vscode.workspace
+                    .getConfiguration("vscode-luau-analyzer")
+                    .get("typesFile", "globalTypes.d.lua")
+                ),
+                new TextEncoder().encode(types)
+              );
+            })
+            .then(() => vscode.window.showInformationMessage("vscode-luau-analyzer: Downloaded latest types"))
+            .catch((err) => vscode.window.showErrorMessage(`vscode-luau-analyzer: Failed to download types: ${err}`))
+        }
+      )
+    );
+
 	context.subscriptions.push(
 		vscode.workspace.onDidOpenTextDocument((document) => {
 			updateDiagnostics(document, collection, getWorkspacePath());
@@ -28,21 +61,47 @@ export function activate(context: vscode.ExtensionContext) {
 			updateDiagnostics(event.document, collection, getWorkspacePath());
 		})
 	);
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor((editor) => {
+            if (editor) {
+                updateDiagnostics(editor.document, collection, getWorkspacePath());
+            }
+        })
+    );
 }
 
 // Define an execute function
-import {spawnSync} from "child_process";
-function executeIn(stdin: string, cwd: string | null): string {
-	let result = spawnSync("luau-analyze", ["--formatter=plain", "-"], {input: stdin, cwd: cwd as any});
+function executeIn(
+  filepath: string,
+  stdin: string,
+  projectName: string,
+  typesFile: string,
+  cwd: string | null
+): string {
+  const args = [
+    "--formatter=plain",
+    `--project=${projectName}`,
+    `--defs=${typesFile}`,
+    `--stdin-filepath=${filepath}`,
+    "-",
+  ];
+  console.log("Running with arguments", args);
+  let result = spawnSync("luau-analyze", args, {
+    input: stdin,
+    cwd: cwd as any,
+  });
 
-	return result.stdout.toString();
+  return result.stdout.toString();
 }
 
 function updateDiagnostics(document: vscode.TextDocument, collection: vscode.DiagnosticCollection, cwd: string | null): void {
 	let path = document.uri.fsPath;
 
 	if (document && (path.endsWith(".lua") || path.endsWith(".luau"))) {
-		let errors = executeIn(document.getText(), cwd);
+        const projectName = vscode.workspace.getConfiguration("vscode-luau-analyzer").get("projectName", "default.project.json");
+        const typesFile = vscode.workspace.getConfiguration("vscode-luau-analyzer").get("typesFile", "globalTypes.d.lua");
+
+		let errors = executeIn(document.uri.fsPath, document.getText(), projectName, typesFile, cwd);
 		let split = errors.split("\n");
 
 		collection.delete(document.uri);
