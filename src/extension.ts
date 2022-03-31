@@ -19,6 +19,9 @@ export function activate(context: vscode.ExtensionContext) {
 	collection = vscode.languages.createDiagnosticCollection("luau");
 	context.subscriptions.push(collection);
 
+    let currentAnnotations = "";
+    let currentSourceMap = "";
+
 	if (vscode.window.activeTextEditor) {
 		updateDiagnostics(vscode.window.activeTextEditor.document, collection, getWorkspacePath());
 	}
@@ -51,6 +54,26 @@ export function activate(context: vscode.ExtensionContext) {
       )
     );
 
+    context.subscriptions.push(
+        vscode.commands.registerCommand("vscode-luau-analyzer.showAnnotations", () => {
+            if (!vscode.window.activeTextEditor) { return
+            }
+            const document = vscode.window.activeTextEditor.document;
+            currentAnnotations = executeIn(document.uri.fsPath, document.getText(), getWorkspacePath(), true);
+            vscode.window.showTextDocument(vscode.Uri.parse('luau-analyzer://annotations.luau'));
+        })
+    )
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand("vscode-luau-analyzer.dumpSourceMap", () => {
+            if (!vscode.window.activeTextEditor) { return
+            }
+            const document = vscode.window.activeTextEditor.document;
+            currentSourceMap = executeIn(document.uri.fsPath, document.getText(), getWorkspacePath(), false, true);
+            vscode.window.showTextDocument(vscode.Uri.parse('luau-analyzer://sourcemap'));
+        })
+    )
+
 	context.subscriptions.push(
 		vscode.workspace.onDidOpenTextDocument((document) => {
 			updateDiagnostics(document, collection, getWorkspacePath());
@@ -68,16 +91,34 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
     );
+
+    const annotationsTdcp = new class implements vscode.TextDocumentContentProvider {
+        provideTextDocumentContent(uri: vscode.Uri, ct: vscode.CancellationToken): vscode.ProviderResult<string> {
+            if (uri.authority === "annotations.luau") {
+                return currentAnnotations;
+            } else if (uri.authority === "sourcemap") {
+                return currentSourceMap;
+            }
+        }
+    }
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider("luau-analyzer", annotationsTdcp))
 }
 
 // Define an execute function
 function executeIn(
   filepath: string,
   stdin: string,
-  projectName: string,
-  typesFile: string,
-  cwd: string | null
+  cwd: string | null,
+  shouldAnnotate: boolean = false,
+  shouldDumpSourceMap: boolean = false
 ): string {
+  const projectName = vscode.workspace
+    .getConfiguration("vscode-luau-analyzer")
+    .get("projectName", "default.project.json");
+  const typesFile = vscode.workspace
+    .getConfiguration("vscode-luau-analyzer")
+    .get("typesFile", "globalTypes.d.lua");
+
   const args = [
     "--formatter=plain",
     `--project=${projectName}`,
@@ -85,6 +126,13 @@ function executeIn(
     `--stdin-filepath=${filepath}`,
     "-",
   ];
+  if (shouldAnnotate) {
+    args.push("--annotate");
+  }
+  if (shouldDumpSourceMap) {
+    args.push("--dump-source-map");
+  }
+
   console.log("Running with arguments", args);
   let result = spawnSync("luau-analyze", args, {
     input: stdin,
@@ -98,10 +146,7 @@ function updateDiagnostics(document: vscode.TextDocument, collection: vscode.Dia
 	let path = document.uri.fsPath;
 
 	if (document && (path.endsWith(".lua") || path.endsWith(".luau"))) {
-        const projectName = vscode.workspace.getConfiguration("vscode-luau-analyzer").get("projectName", "default.project.json");
-        const typesFile = vscode.workspace.getConfiguration("vscode-luau-analyzer").get("typesFile", "globalTypes.d.lua");
-
-		let errors = executeIn(document.uri.fsPath, document.getText(), projectName, typesFile, cwd);
+		let errors = executeIn(document.uri.fsPath, document.getText(), cwd);
 		let split = errors.split("\n");
 
 		collection.delete(document.uri);
