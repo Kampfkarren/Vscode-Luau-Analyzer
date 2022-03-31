@@ -121,6 +121,7 @@ function executeIn(
 
   const args = [
     "--formatter=plain",
+    "--exclude-virtual-path",
     `--project=${projectName}`,
     `--defs=${typesFile}`,
     `--stdin-filepath=${filepath}`,
