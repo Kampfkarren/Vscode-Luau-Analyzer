@@ -1,6 +1,6 @@
 # Vscode-Luau-Analyzer
 
-Vscode port of [zuex](https://github.com/zeux)'s [SublimeLinter-Luau](https://github.com/zeux/SublimeLinter-luau).
+Vscode port of [zeux](https://github.com/zeux)'s [SublimeLinter-Luau](https://github.com/zeux/SublimeLinter-luau).
 
 NOTE: You need to have v512 luau-analyzer or greater in your environment path! (Found [here](https://github.com/Roblox/luau/releases/))
 
