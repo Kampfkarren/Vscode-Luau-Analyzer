@@ -12,7 +12,7 @@ If you're experiencing linter errors when requiring a module, you should try usi
 
 ## Use for Roblox
 
-If you're using this extension for roblox development, you should consider creating a [`.luarc`](https://github.com/Roblox/luau/blob/master/rfcs/config-luaurc.md) file in your project root.
+If you're using this extension for roblox development, you should consider creating a [`.luaurc`](https://github.com/Roblox/luau/blob/master/rfcs/config-luaurc.md) file in your project root.
 
 Heres a small template:
 
